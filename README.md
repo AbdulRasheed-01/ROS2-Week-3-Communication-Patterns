@@ -13,3 +13,15 @@ By the end of this week, you will be able to:
 ✅ Work with Parameters for runtime configuration
 
 ✅ Implement efficient communication between node
+
+3.1 Communication Patterns Overview
+
+ROS 2 offers three main communication patterns:
+
+Pattern	
+
+Topics	
+
+Services
+
+Actions
