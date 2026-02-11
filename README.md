@@ -18,8 +18,6 @@ By the end of this week, you will be able to:
 
 ROS 2 offers three main communication patterns:
 
-Pattern	
-
 Topics	
 
 Services
