@@ -573,3 +573,205 @@ Create actions/image_processor_server.py:
 
     if __name__ == '__main__':
         main()
+Exercise 4: Parameters
+
+Create parameters/parameter_node.py:
+
+    #!/usr/bin/env python3
+    import rclpy
+    from rclpy.node import Node
+    from rclpy.parameter import Parameter
+    from std_msgs.msg import String
+
+    class ParameterNode(Node):
+        def __init__(self):
+        s    uper().__init__('parameter_node',
+                       allow_undeclared_parameters=True,
+                       automatically_declare_parameters_from_overrides=True)
+        
+        # Declare parameters with default values
+        self.declare_parameters(
+            namespace='',
+            parameters=[
+                ('publish_rate', 1.0),
+                ('message', 'Hello ROS 2'),
+                ('enable_logging', True),
+                ('max_count', 100),
+                ('processing_mode', 'fast')
+            ]
+        )
+        
+        # Create publisher
+        self.publisher = self.create_publisher(String, 'parameter_demo', 10)
+        
+        # Timer based on parameter
+        publish_rate = self.get_parameter('publish_rate').value
+        self.timer = self.create_timer(publish_rate, self.timer_callback)
+        
+        # Parameter change callback
+        self.add_on_set_parameters_callback(self.parameter_change_callback)
+        
+        self.counter = 0
+        self.get_logger().info("Parameter Node started")
+    
+    def timer_callback(self):
+        if self.get_parameter('enable_logging').value:
+            message = self.get_parameter('message').value
+            msg = String()
+            msg.data = f"{message} - Count: {self.counter}"
+            self.publisher.publish(msg)
+            self.get_logger().info(f"Published: {msg.data}")
+        
+        self.counter += 1
+        
+        # Stop if max count reached
+        if self.counter >= self.get_parameter('max_count').value:
+            self.timer.cancel()
+            self.get_logger().info("Reached max count, stopping...")
+    
+    def parameter_change_callback(self, params):
+        successful = []
+        failed = []
+        
+        for param in params:
+            self.get_logger().info(f"Parameter change: {param.name} = {param.value}")
+            
+            # Validate parameter changes
+            if param.name == 'publish_rate':
+                if param.value > 0:
+                    self.timer.timer_period_ns = int(param.value * 1e9)
+                    successful.append(param)
+                else:
+                    failed.append(param)
+            elif param.name == 'max_count':
+                if param.value > 0:
+                    successful.append(param)
+                else:
+                    failed.append(param)
+            else:
+                successful.append(param)
+        
+        # Return result
+        result = rclpy.ParameterDescriptor()
+        result.successful = successful
+        result.failed = failed
+        return result
+    
+    def print_parameters(self):
+        params = self.get_parameters(['publish_rate', 'message', 'enable_logging', 'max_count'])
+        self.get_logger().info("Current parameters:")
+        for param in params:
+            self.get_logger().info(f"  {param.name}: {param.value}")
+
+    def main(args=None):
+        rclpy.init(args=args)
+        node = ParameterNode()
+    
+    # Print initial parameters
+    node.print_parameters()
+    
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    
+    node.destroy_node()
+    rclpy.shutdown()
+
+    if __name__ == '__main__':
+        main()
+
+📝 Weekly Project: Smart Home Control System
+
+Project Description
+Create a complete smart home system using all communication patterns:
+
+Topics - For sensor data streaming
+
+Services - For device control commands
+
+Actions - For complex routines (like "Good Morning" routine)
+
+Parameters - For system configuration
+
+Step-by-Step Implementation
+
+Step 1: Create Package Structure
+
+    cd ~/ros2_ws/src
+    ros2 pkg create smart_home --build-type ament_python \
+        --dependencies rclpy std_msgs sensor_msgs example_interfaces \
+        --description "Smart Home Control System"
+
+    cd smart_home
+    mkdir -p smart_home/{sensors,devices,routines,ui}
+    mkdir -p {srv,action,msg,launch}
+Step 2: Define Custom Interfaces
+Create msg/SensorData.msg:
+
+    std_msgs/Header header
+    string sensor_id
+    string sensor_type
+    float32 value
+    string unit
+
+Create srv/DeviceControl.srv:
+
+    string device_id
+    string command
+    string[] parameters
+    ---
+    bool success
+    string message
+
+Create action/Routine.action:
+
+#Goal
+
+    string routine_name
+    string[] parameters
+    ---
+
+    #Result
+    bool success
+    string message
+    int32 duration_seconds
+    ---
+    #Feedback
+    float32 progress
+    string current_step
+
+Step 3: Implement Sensor Nodes (Topics)
+Create sensors/temperature_sensor.py:
+
+    #!/usr/bin/env python3
+    import rclpy
+    from rclpy.node import Node
+    from smart_home.msg import SensorData
+    from rclpy.qos import qos_profile_sensor_data
+    import random
+    import time
+
+    class TemperatureSensor(Node):
+        def __init__(self, sensor_id="temp_01", location="living_room"):
+            super().__init__('temperature_sensor')
+            self.sensor_id = sensor_id
+            self.location = location
+        
+        # Publisher with sensor QoS
+            self.publisher = self.create_publisher(
+                SensorData, 
+                f'/sensors/{location}/temperature', 
+                qos_profile_sensor_data
+            )
+        
+        # Timer for periodic updates
+            self.timer = self.create_timer(2.0, self.publish_data)
+        
+            self.get_logger().info(f"Temperature Sensor {sensor_id} started in {location}")
+    
+        def publish_data(self):
+            msg = SensorData()
+            msg.sensor_id = self.sensor_id
+            msg.sensor_type = "temperature"
+            msg.value = round(random.un
